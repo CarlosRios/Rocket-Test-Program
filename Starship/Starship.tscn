@@ -199,4 +199,5 @@ collision_mask = 2
 [node name="Sprite" type="Sprite" parent="DirectionArrow"]
 position = Vector2( 0, -47.8069 )
 texture = ExtResource( 8 )
+
 [connection signal="engines_on" from="." to="EngineThrust" method="_on_Starship_engines_on"]

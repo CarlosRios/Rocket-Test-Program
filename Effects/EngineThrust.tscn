@@ -3,14 +3,14 @@
 [ext_resource path="res://Effects/EngineThrust.gd" type="Script" id=1]
 
 [sub_resource type="Gradient" id=1]
-offsets = PoolRealArray( 0, 0.355469, 0.605469, 1 )
-colors = PoolColorArray( 1, 1, 1, 1, 1, 0.274042, 0.0422833, 0.247059, 1, 0.733333, 0.301961, 0.729412, 1, 0.529412, 0.529412, 0.619608 )
+offsets = PoolRealArray( 0, 0.465035, 0.72028, 1 )
+colors = PoolColorArray( 1, 1, 1, 1, 1, 0.743689, 0.301961, 0.729412, 0.921875, 0.408345, 0.013643, 0.45198, 0.531816, 0.129547, 0.00112435, 0.247059 )
 
 [sub_resource type="GradientTexture" id=2]
 gradient = SubResource( 1 )
 
 [sub_resource type="Curve" id=3]
-_data = [ Vector2( 0, 0.621926 ), 0.0, 0.0, 0, 0, Vector2( 0.490132, 1 ), 0.0, 0.0, 0, 0, Vector2( 0.81579, 0.705743 ), -2.54311, -2.54311, 0, 0, Vector2( 1, 0.37241 ), 0.0, 0.0, 0, 0 ]
+_data = [ Vector2( 0.011976, 0.18018 ), 0.0, 0.0, 0, 0, Vector2( 0.490132, 1 ), 0.0, 0.0, 0, 0, Vector2( 0.81579, 0.705743 ), -2.54311, -2.54311, 0, 0 ]
 
 [sub_resource type="CurveTexture" id=4]
 curve = SubResource( 3 )
@@ -20,11 +20,11 @@ flag_disable_z = true
 direction = Vector3( 0, 1, 0 )
 spread = 0.0
 gravity = Vector3( 0, 98, 0 )
-initial_velocity_random = 0.14
 angular_velocity = 267.31
 angular_velocity_random = 0.49
 orbit_velocity = 0.0
 orbit_velocity_random = 0.0
+linear_accel = 15.38
 scale = 5.0
 scale_curve = SubResource( 4 )
 color_ramp = SubResource( 2 )

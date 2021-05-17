@@ -69,4 +69,5 @@ fill_mode = 3
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
 [connection signal="gui_input" from="Throttle" to="Throttle" method="_on_Throttle_gui_input"]

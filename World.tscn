@@ -1,19 +1,55 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=10 format=2]
 
-[ext_resource path="res://Starship/Starship.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Levels/Woomerang/sky_fc.png" type="Texture" id=1]
 [ext_resource path="res://Levels/SandyBeach.tscn" type="PackedScene" id=2]
 [ext_resource path="res://UI/HUD.tscn" type="PackedScene" id=3]
+[ext_resource path="res://Crafts/Starship/Starship.tscn" type="PackedScene" id=4]
+[ext_resource path="res://Levels/Woomerang/far_mountains_fc.png" type="Texture" id=5]
 [ext_resource path="res://World.gd" type="Script" id=6]
 [ext_resource path="res://Effects/SmokeEffect.tscn" type="PackedScene" id=7]
+
+[sub_resource type="ProceduralSky" id=1]
+
+[sub_resource type="Environment" id=2]
+background_mode = 4
+background_sky = SubResource( 1 )
+glow_enabled = true
+glow_intensity = 1.43
+glow_blend_mode = 1
+glow_hdr_threshold = 1.5
+glow_bicubic_upscale = true
 
 [node name="World" type="Node2D"]
 script = ExtResource( 6 )
 smoke_effect = ExtResource( 7 )
 
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource( 2 )
+
+[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+
+[node name="ParallaxLayer" type="ParallaxLayer" parent="ParallaxBackground"]
+motion_scale = Vector2( 0.2, 0.2 )
+motion_mirroring = Vector2( 384, 0 )
+
+[node name="Sprite" type="Sprite" parent="ParallaxBackground/ParallaxLayer"]
+position = Vector2( -214, -232 )
+scale = Vector2( 1.375, 1.56944 )
+texture = ExtResource( 1 )
+centered = false
+
+[node name="ParallaxLayer2" type="ParallaxLayer" parent="ParallaxBackground"]
+motion_scale = Vector2( 0.2, 1 )
+motion_mirroring = Vector2( 384, 0 )
+
+[node name="Sprite" type="Sprite" parent="ParallaxBackground/ParallaxLayer2"]
+position = Vector2( -214, -24 )
+texture = ExtResource( 5 )
+centered = false
+
 [node name="SandyBeach" parent="." instance=ExtResource( 2 )]
 
-[node name="Starship" parent="." instance=ExtResource( 1 )]
-position = Vector2( 280, 112 )
+[node name="Starship" parent="." instance=ExtResource( 4 )]
+position = Vector2( 280, 101 )
 
 [node name="HUD" parent="." instance=ExtResource( 3 )]
-[connection signal="launching" from="Starship" to="." method="_on_Starship_launching"]
