@@ -5,10 +5,7 @@ const ExplosionEffect = preload("res://Effects/Explosion.tscn")
 
 # Signals
 signal fuel_updated
-signal engines_on
-signal steer_engines
 signal can_belly_flop
-signal launching
 
 # Exports
 export (float) var max_fuel = 1200
@@ -17,14 +14,13 @@ export (int) var atmosphere_height = 10000
 
 # Variables
 var elevation = 0
-var thrust = Vector2()
 var drag = Vector2()
 var lift = Vector2()
 var previous_velocity = Vector2.ZERO
 var throttle = 0.0
 var rotation_dir = 0
 var num_of_points = 10
-var dry_mass = 12.0
+var dry_mass = 120
 
 # Conditional Variables
 var is_in_the_air = false
@@ -33,10 +29,10 @@ var is_flopping = false
 var is_flipping = false
 var is_landed = true
 var is_crashed = false
-var engines_on = false
 
 # Onreadys
 #onready var to_ground = $DistanceFromGround
+onready var engines = $EngineConfiguration.get_children()
 onready var animationPlayer = $AnimationPlayer
 onready var thrust_direction_ray = $ThrustDirectionRay
 onready var camera = $Camera2D
@@ -52,8 +48,9 @@ func _ready() :
 
 func _physics_process(_delta: float) :
 	_handle_input()
-	calculate_trajectory()
-	camera.update_camera_zoom(get_elevation())
+	_engine_controller()
+	_calculate_trajectory()
+	_handle_camera()
 
 func _integrate_forces(state: Physics2DDirectBodyState) :
 	# Drag
@@ -64,45 +61,96 @@ func _integrate_forces(state: Physics2DDirectBodyState) :
 # Handles the flight input
 # ------------------------------------------------------------------
 func _handle_input() :
-	if Input.is_action_pressed("fire_engines") and remaining_fuel > 0 and throttle > 0.0:
-		camera.get_child(1).start()
-		update_fuel_level()
-		engines_on = true
-		emit_signal("engines_on", throttle)
-	else :
-		engines_on = false
+	if Input.is_action_just_pressed("activate_engines") :
+		toggle_all_engines( true )
+
+	if Input.is_action_just_pressed("shutdown_engines") :
+		toggle_all_engines( false )
+
+	if Input.is_action_just_pressed("toggle_engine_1") :
+		toggle_engine(engines[0])
+
+	if Input.is_action_just_pressed("toggle_engine_2") :
+		toggle_engine(engines[1])
+
+	if Input.is_action_just_pressed("toggle_engine_3") :
+		toggle_engine(engines[2])
 	
 	if Input.is_action_pressed("ui_right") :
 		apply_rcs_torque("right")
-		emit_signal("steer_engines", "right")
+		steer_engines('right')
+
 	if Input.is_action_pressed("ui_left") :
 		apply_rcs_torque("left")
-		emit_signal("steer_engines", "left")
+		steer_engines('left')
 
 	if Input.is_action_just_released("ui_right") or Input.is_action_just_released( "ui_left" ) :
-		emit_signal("steer_engines", null)
+		steer_engines()
 	
 	if Input.is_action_pressed("belly_flop") && can_belly_flop() :
 		is_flopping = true
 
+# Everything related to the camera
+func _handle_camera() :
+	if is_thrusting() :
+		camera.get_child(1).start()
+
+	camera.update_camera_zoom( get_elevation() )
+
 # ------------------------------------------------------------------
 # Force / Impulse related functions
 # ------------------------------------------------------------------
+
+# Starship's dry mass is 120 tonnes
+# SN Tests weigh about 5000 tonnes
+# Raptors max thrust is around 225 tonnes, min is 90 tonnes
+func set_vehicle_mass() : 
+	mass = dry_mass + remaining_fuel
+
+# Activates all the engines or a specific engine
+func _engine_controller( _engine = null ) :
+	if remaining_fuel > 0 :
+		if _engine == null:
+			for engine in engines :
+				if engine.is_on() and throttle > 0:
+					engine.apply_thrust( throttle )
+					burn_fuel()
+		elif _engine != null : 
+			engines[_engine].turn_on()
+
+# Toggles all the engines.
+# Set _state to true / false to force on or off state, leave blank to toggle
+func toggle_all_engines( _state = null ) :
+	for engine in engines :
+		if _state != null :
+			toggle_engine( engine, _state )
+		else :
+			toggle_engine( engine )
+
+# Toggles the engine. _state can be used to force a shutdown / activation, such as in the case where you want to shutdown everything or turn on everything.
+func toggle_engine( engine_node, _state = null ) :
+	if _state != null :
+		if _state == true :
+			engine_node.turn_on()
+		else :
+			engine_node.shut_down()
+	else : 
+		if engine_node.is_on() :
+			engine_node.shut_down()
+		else :
+			engine_node.turn_on()
+
+func steer_engines( direction = null ) :
+	for engine in engines : 
+		engine.set_engine_rotation( direction )
+
 func apply_rcs_torque( direction, strength = 12000 ) :
 	if direction == "left" :
 		apply_torque_impulse(-strength)
 	else :
 		apply_torque_impulse(strength)
 
-# Starship's dry mass is 120 tonnes
-# SN Tests weigh about 5000 tonnes
-# Raptors max thrust is around 225 tonnes, min is 90 tonnes
-func set_vehicle_mass() : 
-	var dry_mass = 120
-	mass = dry_mass + remaining_fuel
-	#print( mass )
-
-func update_fuel_level() :
+func burn_fuel() :
 	var fuel_burn_formula = throttle / 100
 	remaining_fuel -= fuel_burn_formula
 	set_vehicle_mass()
@@ -190,8 +238,14 @@ func is_on_the_ground() -> bool:
 		# Sets the previous velocity before the next check
 		previous_velocity = get_linear_velocity()
 		return false
+
+func is_thrusting() -> bool :
+	for engine in engines :
+		if engine.is_on() and throttle > 0:
+			return true
+	return false
 		
-func calculate_trajectory() :
+func _calculate_trajectory() :
 	var points = []
 	var total_air_time = 20.0
 	var x_component = linear_velocity.x * cos (self.rotation * -1.0)
@@ -229,3 +283,5 @@ func on_enter_crash_state():
 	var explosion = ExplosionEffect.instance()
 	get_parent().add_child(explosion)
 	explosion.global_position = global_position
+	for engine in engines :
+		engine.shut_down()

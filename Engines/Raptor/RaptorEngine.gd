@@ -4,13 +4,15 @@ export (int) var max_thrust = 1000
 export (bool) var can_gimbal = true
 export (float) var max_gimbal = 35.0
 
-# The initial values
+# Starting values
+var engine_on = false
 var gimbal_rotation = 0.0
 var thrust = 0
 
 onready var spacecraft = get_parent().get_parent()
 onready var exhaust = $EngineExhaust
 
+# Gimbals the individual engine
 func set_engine_rotation( direction ) :
 	if can_gimbal :
 		if direction != null :
@@ -29,7 +31,7 @@ func set_engine_rotation( direction ) :
 # Apply thrust to the spacecraft
 # Engines also provide a small amount of torque to the spacecraft
 # Thrust is max_thrust * (throttle / 100)
-func fire_engine( throttle ) -> void:
+func apply_thrust( throttle ) -> void:
 	thrust = max_thrust * (throttle / 100)
 	
 	if gimbal_rotation > 0 or gimbal_rotation < 0 :
@@ -46,6 +48,23 @@ func fire_engine( throttle ) -> void:
 	# Apply the thrust to the spacecraft
 	var thrust_vector = Vector2(0, -thrust)
 	spacecraft.apply_impulse( self.position, thrust_vector.rotated( deg2rad( gimballed_spacecraft ) ) )
+
+# Checks if the engine is on
+func is_on() -> bool :
+	if engine_on == true :
+		return true
+	else :
+		return false
+
+# Things that happen when the engine is lit
+func turn_on() :
+	engine_on = true
+
+# Should happen as the engine shuts down
+func shut_down() :
+	engine_on = false
+	exhaust.emitting = false
+	thrust = 0
 
 func _on_Timer_timeout() -> void:
 	exhaust.emitting = false

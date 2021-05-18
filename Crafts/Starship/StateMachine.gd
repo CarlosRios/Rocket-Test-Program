@@ -42,7 +42,7 @@ func _get_transition(_delta) :
 		states.flopping:
 			if parent.is_on_the_ground():
 				return states.crashed
-			elif parent.engines_on :
+			elif parent.is_thrusting() :
 				return states.flipping
 
 		states.flipping:

@@ -113,6 +113,7 @@ angular_damp = 5.0
 script = ExtResource( 2 )
 
 [node name="Trajectory" type="Line2D" parent="."]
+visible = false
 rotation = -1.49012e-08
 scale = Vector2( 1, 1 )
 width = 2.0
@@ -177,6 +178,3 @@ frame = 5
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Sprite"]
 occluder = SubResource( 6 )
-
-[connection signal="engines_on" from="." to="EngineConfiguration" method="_on_Starship_engines_on"]
-[connection signal="steer_engines" from="." to="EngineConfiguration" method="_on_Starship_steer_engines"]
