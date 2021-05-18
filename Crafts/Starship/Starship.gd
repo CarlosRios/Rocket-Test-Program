@@ -119,18 +119,18 @@ func _engine_controller( _engine = null ) :
 			engines[_engine].turn_on()
 
 # Toggles all the engines.
-# Set _state to true / false to force on or off state, leave blank to toggle
-func toggle_all_engines( _state = null ) :
+# Set _engine_state to true / false to force on or off state, leave blank to toggle
+func toggle_all_engines( _engine_state = null ) :
 	for engine in engines :
-		if _state != null :
-			toggle_engine( engine, _state )
+		if _engine_state != null :
+			toggle_engine( engine, _engine_state )
 		else :
 			toggle_engine( engine )
 
-# Toggles the engine. _state can be used to force a shutdown / activation, such as in the case where you want to shutdown everything or turn on everything.
-func toggle_engine( engine_node, _state = null ) :
-	if _state != null :
-		if _state == true :
+# Toggles the engine. _engine_state can be used to force a shutdown / activation, such as in the case where you want to shutdown everything or turn on everything.
+func toggle_engine( engine_node, _engine_state = null ) :
+	if _engine_state != null :
+		if _engine_state == true :
 			engine_node.turn_on()
 		else :
 			engine_node.shut_down()
