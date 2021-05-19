@@ -6,6 +6,7 @@ const ExplosionEffect = preload("res://Effects/Explosion.tscn")
 # Signals
 signal fuel_updated
 signal can_belly_flop
+signal elevation_updated
 
 # Exports
 export (float) var max_fuel = 1200
@@ -32,10 +33,12 @@ var is_crashed = false
 
 # Onreadys
 #onready var to_ground = $DistanceFromGround
+onready var gravity = Physics2DServer.area_get_param( get_world_2d().get_space(), Physics2DServer.AREA_PARAM_GRAVITY)
 onready var engines = $EngineConfiguration.get_children()
 onready var animationPlayer = $AnimationPlayer
 onready var thrust_direction_ray = $ThrustDirectionRay
 onready var camera = $Camera2D
+onready var liftoff_audio = $LiftoffAudio
 onready var remaining_fuel = max_fuel
 onready var initial_elevation = global_position.y
 
@@ -52,6 +55,9 @@ func _physics_process(_delta: float) :
 	_calculate_trajectory()
 	_handle_camera()
 
+	if !is_thrusting() :
+		liftoff_audio.playing = false
+
 func _integrate_forces(state: Physics2DDirectBodyState) :
 	# Drag
 	apply_central_impulse( _calc_drag_forces() )
@@ -61,11 +67,8 @@ func _integrate_forces(state: Physics2DDirectBodyState) :
 # Handles the flight input
 # ------------------------------------------------------------------
 func _handle_input() :
-	if Input.is_action_just_pressed("activate_engines") :
-		toggle_all_engines( true )
-
-	if Input.is_action_just_pressed("shutdown_engines") :
-		toggle_all_engines( false )
+	if Input.is_action_just_pressed("toggle_engines") :
+		toggle_all_engines()
 
 	if Input.is_action_just_pressed("toggle_engine_1") :
 		toggle_engine(engines[0])
@@ -114,7 +117,7 @@ func _engine_controller( _engine = null ) :
 			for engine in engines :
 				if engine.is_on() and throttle > 0:
 					engine.apply_thrust( throttle )
-					burn_fuel()
+					burn_fuel_with_engines(engine)
 		elif _engine != null : 
 			engines[_engine].turn_on()
 
@@ -127,7 +130,9 @@ func toggle_all_engines( _engine_state = null ) :
 		else :
 			toggle_engine( engine )
 
-# Toggles the engine. _engine_state can be used to force a shutdown / activation, such as in the case where you want to shutdown everything or turn on everything.
+# Toggles the engine
+# _engine_state can be used to force a shutdown / activation
+# such as in the case where you want to shutdown everything or turn on everything.
 func toggle_engine( engine_node, _engine_state = null ) :
 	if _engine_state != null :
 		if _engine_state == true :
@@ -144,15 +149,18 @@ func steer_engines( direction = null ) :
 	for engine in engines : 
 		engine.set_engine_rotation( direction )
 
-func apply_rcs_torque( direction, strength = 12000 ) :
+func apply_rcs_torque( direction, strength = 5500 ) :
 	if direction == "left" :
 		apply_torque_impulse(-strength)
 	else :
 		apply_torque_impulse(strength)
 
-func burn_fuel() :
-	var fuel_burn_formula = throttle / 100
-	remaining_fuel -= fuel_burn_formula
+func burn_fuel_with_engines( engine ) :
+	if liftoff_audio.playing == false :
+		liftoff_audio.playing = true
+
+	var fuel_consumption = engine.thrust / ( engine.isp * gravity )
+	remaining_fuel -= fuel_consumption
 	set_vehicle_mass()
 	emit_signal("fuel_updated", max_fuel, remaining_fuel)
 
@@ -216,6 +224,7 @@ func get_elevation() -> float:
 	# that number is the distance to the ground
 	
 	elevation = initial_elevation - global_position.y
+	emit_signal( 'elevation_updated', round(elevation) )
 	return elevation
 
 func _on_Throttle_value_changed( value ) :
@@ -240,11 +249,15 @@ func is_on_the_ground() -> bool:
 		return false
 
 func is_thrusting() -> bool :
+	var vehicle_thrust = 0.0
 	for engine in engines :
-		if engine.is_on() and throttle > 0:
-			return true
-	return false
-		
+		vehicle_thrust += engine.thrust
+
+	if vehicle_thrust > 0 :
+		return true 
+	else :
+		return false
+
 func _calculate_trajectory() :
 	var points = []
 	var total_air_time = 20.0
@@ -266,6 +279,16 @@ func _calculate_trajectory() :
 # Transition State: on_transition_name_state()
 # Exit States: on_exit_name_state()
 # ------------------------------------------------------------------
+func on_enter_launching_state() :
+	animationPlayer.play("Launching")
+	is_in_the_air = false
+
+func on_exit_launching_state() :
+	is_in_the_air = true
+
+func on_enter_climbing_state() :
+	is_falling = false
+
 func on_enter_flopping_state() :
 	is_flopping = true
 	# Little bit hacky but it works. Allows interpolation on the rotation_degrees

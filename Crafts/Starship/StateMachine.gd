@@ -73,11 +73,10 @@ func _enter_state(new_state, old_state) :
 
 	match new_state:
 		states.launching:
-			parent.animationPlayer.play("Launching")
-			parent.is_in_the_air = false
+			parent.on_enter_launching_state()
 		
 		states.climbing:
-			parent.is_falling = false
+			parent.on_enter_climbing_state()
 		
 		states.falling:
 			parent.can_belly_flop()
@@ -101,8 +100,8 @@ func _enter_state(new_state, old_state) :
 func _exit_state(old_state, new_state) :
 	match old_state:
 		states.launching:
-			parent.is_in_the_air = true
-			
+			parent.on_exit_launching_state()
+
 		states.climbing:
 			parent.is_falling = true
 

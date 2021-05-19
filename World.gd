@@ -12,6 +12,7 @@ func _ready():
 	# Starship > Hud
 	$Starship.connect("fuel_updated", $HUD, "_on_Fuel_Updated")
 	$Starship.connect("can_belly_flop", $HUD, "_on_Can_Belly_Flop")
+	$Starship.connect("elevation_updated", $HUD, '_on_Elevation_Updated')
 
 	# Starship > World
 	$Starship.connect("launching", self, "generate_smoke_effect")

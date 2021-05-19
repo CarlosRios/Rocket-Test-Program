@@ -50,6 +50,6 @@ centered = false
 [node name="SandyBeach" parent="." instance=ExtResource( 2 )]
 
 [node name="Starship" parent="." instance=ExtResource( 4 )]
-position = Vector2( 280, 101 )
+position = Vector2( 280, 102 )
 
 [node name="HUD" parent="." instance=ExtResource( 3 )]

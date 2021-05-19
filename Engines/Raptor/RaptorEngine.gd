@@ -1,6 +1,6 @@
 extends Node2D
 
-export (int) var max_thrust = 1000
+export (int) var max_thrust = 200
 export (bool) var can_gimbal = true
 export (float) var max_gimbal = 35.0
 
@@ -8,6 +8,7 @@ export (float) var max_gimbal = 35.0
 var engine_on = false
 var gimbal_rotation = 0.0
 var thrust = 0
+var isp = 330
 
 onready var spacecraft = get_parent().get_parent()
 onready var exhaust = $EngineExhaust
@@ -38,7 +39,9 @@ func apply_thrust( throttle ) -> void:
 		var torque = gimbal_rotation * thrust
 		spacecraft.apply_torque_impulse( torque )
 
-	exhaust.process_material.set("initial_velocity", throttle / 3 )
+	var variable_velocity = 30 * (throttle / 100)
+
+	exhaust.process_material.set("initial_velocity", clamp(variable_velocity, 0.0, 10.0) )
 	$Timer.start()
 	exhaust.emitting = true
 
@@ -52,6 +55,13 @@ func apply_thrust( throttle ) -> void:
 # Checks if the engine is on
 func is_on() -> bool :
 	if engine_on == true :
+		return true
+	else :
+		return false
+
+# Checks if the engine is applying thrust
+func is_applying_thrust() -> bool :
+	if is_on() and thrust > 0 :
 		return true
 	else :
 		return false
