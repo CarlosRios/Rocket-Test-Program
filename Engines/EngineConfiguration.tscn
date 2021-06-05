@@ -5,9 +5,9 @@
 [node name="EngineConfiguration" type="Node2D"]
 
 [node name="RaptorEngine3" parent="." instance=ExtResource( 1 )]
-position = Vector2( -2, 0 )
+position = Vector2( -9, 0 )
 
 [node name="RaptorEngine" parent="." instance=ExtResource( 1 )]
 
 [node name="RaptorEngine2" parent="." instance=ExtResource( 1 )]
-position = Vector2( 2, 0 )
+position = Vector2( 9, 0 )

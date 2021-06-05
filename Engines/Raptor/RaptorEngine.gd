@@ -3,6 +3,7 @@ extends Node2D
 export (int) var max_thrust = 200
 export (bool) var can_gimbal = true
 export (float) var max_gimbal = 35.0
+export (float) var gimbal_torque = 7
 
 # Starting values
 var engine_on = false
@@ -36,8 +37,8 @@ func apply_thrust( throttle ) -> void:
 	thrust = max_thrust * (throttle / 100)
 	
 	if gimbal_rotation > 0 or gimbal_rotation < 0 :
-		var torque = gimbal_rotation * thrust
-		spacecraft.apply_torque_impulse( torque )
+		var torque = gimbal_rotation * (thrust * 2)
+		spacecraft.apply_torque_impulse( torque * gimbal_torque )
 
 	var variable_velocity = 30 * (throttle / 100)
 

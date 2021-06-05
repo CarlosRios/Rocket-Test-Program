@@ -7,6 +7,7 @@ const ExplosionEffect = preload("res://Effects/Explosion.tscn")
 signal fuel_updated
 signal can_belly_flop
 signal elevation_updated
+signal starship_position
 
 # Exports
 export (float) var max_fuel = 1200
@@ -15,13 +16,14 @@ export (int) var atmosphere_height = 10000
 
 # Variables
 var elevation = 0
-var drag = Vector2()
+var drag_velocity = Vector2()
 var lift = Vector2()
 var previous_velocity = Vector2.ZERO
 var throttle = 0.0
 var rotation_dir = 0
 var num_of_points = 10
 var dry_mass = 120
+var travel_path = []
 
 # Conditional Variables
 var is_in_the_air = false
@@ -39,46 +41,34 @@ onready var animationPlayer = $AnimationPlayer
 onready var thrust_direction_ray = $ThrustDirectionRay
 onready var camera = $Camera2D
 onready var liftoff_audio = $LiftoffAudio
+onready var collider = $CollisionShape2D
 onready var remaining_fuel = max_fuel
 onready var initial_elevation = global_position.y
+
+# Debugging
+onready var debug_drag = $Drag
+onready var debug_prograde = $Prograde
 
 # ------------------------------------------------------------------
 # Main functions _ready() _physics_process _process
 # ------------------------------------------------------------------
 func _ready() :
 	set_vehicle_mass()
-	pass
 
 func _physics_process(_delta: float) :
 	_handle_input()
 	_engine_controller()
-	_calculate_trajectory()
+	_calc_drag_forces()
 	_handle_camera()
 
 	if !is_thrusting() :
 		liftoff_audio.playing = false
 
-func _integrate_forces(state: Physics2DDirectBodyState) :
-	# Drag
-	apply_central_impulse( _calc_drag_forces() )
-	return state
-
 # ------------------------------------------------------------------
 # Handles the flight input
 # ------------------------------------------------------------------
 func _handle_input() :
-	if Input.is_action_just_pressed("toggle_engines") :
-		toggle_all_engines()
 
-	if Input.is_action_just_pressed("toggle_engine_1") :
-		toggle_engine(engines[0])
-
-	if Input.is_action_just_pressed("toggle_engine_2") :
-		toggle_engine(engines[1])
-
-	if Input.is_action_just_pressed("toggle_engine_3") :
-		toggle_engine(engines[2])
-	
 	if Input.is_action_pressed("ui_right") :
 		apply_rcs_torque("right")
 		steer_engines('right')
@@ -134,6 +124,7 @@ func toggle_all_engines( _engine_state = null ) :
 # _engine_state can be used to force a shutdown / activation
 # such as in the case where you want to shutdown everything or turn on everything.
 func toggle_engine( engine_node, _engine_state = null ) :
+
 	if _engine_state != null :
 		if _engine_state == true :
 			engine_node.turn_on()
@@ -149,7 +140,7 @@ func steer_engines( direction = null ) :
 	for engine in engines : 
 		engine.set_engine_rotation( direction )
 
-func apply_rcs_torque( direction, strength = 5500 ) :
+func apply_rcs_torque( direction, strength = 40000 ) :
 	if direction == "left" :
 		apply_torque_impulse(-strength)
 	else :
@@ -164,6 +155,10 @@ func burn_fuel_with_engines( engine ) :
 	set_vehicle_mass()
 	emit_signal("fuel_updated", max_fuel, remaining_fuel)
 
+func dump_fuel() :
+	remaining_fuel = 0
+	emit_signal("fuel_updated", max_fuel, 0.0)
+
 # Calculates how dense the atmosphere is.
 # Returns a percentage
 func _get_atmosphere_density() :
@@ -177,25 +172,28 @@ func _get_atmosphere_density() :
 # Drag is calculated with the following (-C * v2)
 # Need to include elevation as well as rotation as a part of the equation
 func _calc_drag_forces() :
-	# 1. the current thickness of the atmosphere
 	var density = _get_atmosphere_density()
 
-	# 2. we need to know how fast we're flying through the atmosphere
-	var velocity = get_linear_velocity()
+	# Vectors are not rotating
+	var forward_vector = Vector2(0, -87)
+	var side_vector = Vector2( -16, 0 )
+	var direction = self.linear_velocity.normalized()
 
-	# 3. the direction (Vector) that the rocket is flying towards (prograde)
+	var forward_dot = forward_vector.normalized().dot( direction )
+	var side_dot = side_vector.normalized().dot( direction )
+	var total_dot = abs(forward_dot) + ( abs(side_dot) * 10 )
 
-	# 4. the angle that the rocket is flying
-	
-	var aero_drag_amount = 0.5
-	
-	if is_flopping and rotation_degrees < -75 and rotation_degrees > -115 :
-		aero_drag_amount = 2
+	# The formula for generating drag in the atmosphere.
+	if density > 0 :
+		drag_velocity = ( linear_velocity * total_dot ) * ( density / 100 ) 
+	else :
+		drag_velocity = Vector2.ZERO
 
-	drag.y = aero_drag_amount * velocity.y
-	drag.x = aero_drag_amount * velocity.x
+	# The angle its flying
+	print( abs( forward_dot ) )
 
-	return -drag
+	# Drag needs to be applied to the point where drag is actually hitting.
+	apply_impulse( Vector2.ZERO, -drag_velocity )
 	
 func _calc_lift_forces() :
 	var lift_amount = 2
@@ -272,6 +270,13 @@ func _calculate_trajectory() :
 		points.append(Vector2(dx, dy))
 	
 		$Trajectory.points = points
+
+# ------------------------------------------------------------------
+# Input Events - these are methods that are connected via signal externally
+# ------------------------------------------------------------------
+func _on_EngineButton_toggle(_button_pressed, engine_number) :
+	toggle_engine( engines[ engine_number ] )
+
 # ------------------------------------------------------------------
 # State Changes - these methods need to be defined in StateMachine.gd
 # 
@@ -285,6 +290,7 @@ func on_enter_launching_state() :
 
 func on_exit_launching_state() :
 	is_in_the_air = true
+	$StatsUpdate.start()
 
 func on_enter_climbing_state() :
 	is_falling = false
@@ -301,10 +307,16 @@ func on_enter_flipping_state():
 	animationPlayer.play("FlipManuever")
 
 func on_enter_crash_state():
+	dump_fuel()
 	visible = false
-	remaining_fuel = 0
 	var explosion = ExplosionEffect.instance()
 	get_parent().add_child(explosion)
 	explosion.global_position = global_position
 	for engine in engines :
 		engine.shut_down()
+	$StatsUpdate.stop()
+
+
+func _on_StatsUpdate_timeout() -> void:
+	var starship_height = collider.shape.extents.y
+	emit_signal('starship_position', global_position )

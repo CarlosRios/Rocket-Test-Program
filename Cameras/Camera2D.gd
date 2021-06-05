@@ -13,6 +13,6 @@ func update_camera_zoom(elevation) :
 		$ZoomTween.interpolate_property(self, "zoom:y", null, 1.0, DURATION, TRANS, EASE)
 		$ZoomTween.start()
 	else :
-		$ZoomTween.interpolate_property(self, "zoom:x", null, 1.5, DURATION, TRANS, EASE)
-		$ZoomTween.interpolate_property(self, "zoom:y", null, 1.5, DURATION, TRANS, EASE)
+		$ZoomTween.interpolate_property(self, "zoom:x", null, 1.0, DURATION, TRANS, EASE)
+		$ZoomTween.interpolate_property(self, "zoom:y", null, 1.0, DURATION, TRANS, EASE)
 		$ZoomTween.start()
