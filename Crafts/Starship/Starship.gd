@@ -16,7 +16,6 @@ export (int) var atmosphere_height = 10000
 
 # Variables
 var elevation = 0
-var drag_velocity = Vector2()
 var lift = Vector2()
 var previous_velocity = Vector2.ZERO
 var throttle = 0.0
@@ -60,9 +59,7 @@ func _physics_process(_delta: float) :
 	_engine_controller()
 	_calc_drag_forces()
 	_handle_camera()
-
-	if !is_thrusting() :
-		liftoff_audio.playing = false
+	_handle_audio()
 
 # ------------------------------------------------------------------
 # Handles the flight input
@@ -90,6 +87,20 @@ func _handle_camera() :
 
 	camera.update_camera_zoom( get_elevation() )
 
+# Handles the audio
+func _handle_audio() :
+	if !is_thrusting() :
+		liftoff_audio.playing = false
+
+func toggle_audio( _audio_state = null ) :
+	if _audio_state == true :
+		liftoff_audio.playing = true
+	elif _audio_state == false :
+		liftoff_audio.playing = false
+	else :
+		if liftoff_audio.playing == false :
+			liftoff_audio.playing = true
+
 # ------------------------------------------------------------------
 # Force / Impulse related functions
 # ------------------------------------------------------------------
@@ -108,6 +119,8 @@ func _engine_controller( _engine = null ) :
 				if engine.is_on() and throttle > 0:
 					engine.apply_thrust( throttle )
 					burn_fuel_with_engines(engine)
+				else :
+					engine.thrust = 0
 		elif _engine != null : 
 			engines[_engine].turn_on()
 
@@ -147,9 +160,7 @@ func apply_rcs_torque( direction, strength = 40000 ) :
 		apply_torque_impulse(strength)
 
 func burn_fuel_with_engines( engine ) :
-	if liftoff_audio.playing == false :
-		liftoff_audio.playing = true
-
+	#toggle_audio()
 	var fuel_consumption = engine.thrust / ( engine.isp * gravity )
 	remaining_fuel -= fuel_consumption
 	set_vehicle_mass()
@@ -168,33 +179,30 @@ func _get_atmosphere_density() :
 	return density
 
 # Drag is a force that is applied to the vessel. The amount of drag a vessel feels
-# is related to its speed, angle, and altitude
-# Drag is calculated with the following (-C * v2)
-# Need to include elevation as well as rotation as a part of the equation
 func _calc_drag_forces() :
 	var density = _get_atmosphere_density()
+	var density_percent = ( density / 100 )
 
 	# Vectors are not rotating
-	var forward_vector = Vector2(0, -87)
-	var side_vector = Vector2( -16, 0 )
+	var forward_vector = Vector2(0, -87).rotated( self.rotation )
+	var side_vector = Vector2( -16, 0 ).rotated( self.rotation )
 	var direction = self.linear_velocity.normalized()
 
 	var forward_dot = forward_vector.normalized().dot( direction )
 	var side_dot = side_vector.normalized().dot( direction )
-	var total_dot = abs(forward_dot) + ( abs(side_dot) * 10 )
 
-	# The formula for generating drag in the atmosphere.
+	# New formula
+	var side_drag = side_dot * side_dot * side_vector.normalized() * density_percent
+	var forward_drag = forward_dot * forward_dot * forward_vector.normalized() * density_percent
+
 	if density > 0 :
-		drag_velocity = ( linear_velocity * total_dot ) * ( density / 100 ) 
-	else :
-		drag_velocity = Vector2.ZERO
+		forward_drag = forward_drag * -linear_velocity.length()
+		side_drag = side_drag * -linear_velocity.length()
+		apply_impulse( Vector2.ZERO, forward_drag )
+		apply_impulse( Vector2.ZERO, side_drag )
+		print( forward_drag )
+		print( side_drag )
 
-	# The angle its flying
-	print( abs( forward_dot ) )
-
-	# Drag needs to be applied to the point where drag is actually hitting.
-	apply_impulse( Vector2.ZERO, -drag_velocity )
-	
 func _calc_lift_forces() :
 	var lift_amount = 2
 	var velocity = get_linear_velocity()

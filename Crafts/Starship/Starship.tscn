@@ -92,7 +92,6 @@ current = true
 zoom = Vector2( 1.5, 1.5 )
 drag_margin_h_enabled = true
 drag_margin_v_enabled = true
-smoothing_enabled = true
 offset_v = -1.0
 script = ExtResource( 7 )
 

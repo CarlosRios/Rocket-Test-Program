@@ -8,11 +8,11 @@ onready var zoomTween = $ZoomTween
 
 func update_camera_zoom(elevation) :
 	
-	if elevation > 1000 :
+	if elevation > 4000 :
 		$ZoomTween.interpolate_property(self, "zoom:x", null, 1.0, DURATION, TRANS, EASE)
 		$ZoomTween.interpolate_property(self, "zoom:y", null, 1.0, DURATION, TRANS, EASE)
 		$ZoomTween.start()
 	else :
-		$ZoomTween.interpolate_property(self, "zoom:x", null, 1.0, DURATION, TRANS, EASE)
-		$ZoomTween.interpolate_property(self, "zoom:y", null, 1.0, DURATION, TRANS, EASE)
+		$ZoomTween.interpolate_property(self, "zoom:x", null, 2.0, DURATION, TRANS, EASE)
+		$ZoomTween.interpolate_property(self, "zoom:y", null, 2.0, DURATION, TRANS, EASE)
 		$ZoomTween.start()
