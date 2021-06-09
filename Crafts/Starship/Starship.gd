@@ -24,6 +24,12 @@ var num_of_points = 10
 var dry_mass = 120
 var travel_path = []
 
+# Drag Vectors
+var f_vector = Vector2(0, -87).rotated( self.rotation )
+var s_vector = Vector2( -16, 0 ).rotated( self.rotation )
+var s_drag = Vector2()
+var f_drag = Vector2()
+
 # Conditional Variables
 var is_in_the_air = false
 var is_falling = false
@@ -43,10 +49,6 @@ onready var liftoff_audio = $LiftoffAudio
 onready var collider = $CollisionShape2D
 onready var remaining_fuel = max_fuel
 onready var initial_elevation = global_position.y
-
-# Debugging
-onready var debug_drag = $Drag
-onready var debug_prograde = $Prograde
 
 # ------------------------------------------------------------------
 # Main functions _ready() _physics_process _process
@@ -184,24 +186,20 @@ func _calc_drag_forces() :
 	var density_percent = ( density / 100 )
 
 	# Vectors are not rotating
-	var forward_vector = Vector2(0, -87).rotated( self.rotation )
-	var side_vector = Vector2( -16, 0 ).rotated( self.rotation )
 	var direction = self.linear_velocity.normalized()
 
-	var forward_dot = forward_vector.normalized().dot( direction )
-	var side_dot = side_vector.normalized().dot( direction )
+	var forward_dot = f_vector.normalized().dot( direction )
+	var side_dot = s_vector.normalized().dot( direction )
 
 	# New formula
-	var side_drag = side_dot * side_dot * side_vector.normalized() * density_percent
-	var forward_drag = forward_dot * forward_dot * forward_vector.normalized() * density_percent
+	s_drag = side_dot * side_dot * s_vector.normalized() * density_percent
+	f_drag = forward_dot * forward_dot * f_vector.normalized() * density_percent
 
 	if density > 0 :
-		forward_drag = forward_drag * -linear_velocity.length()
-		side_drag = side_drag * -linear_velocity.length()
-		apply_impulse( Vector2.ZERO, forward_drag )
-		apply_impulse( Vector2.ZERO, side_drag )
-		print( forward_drag )
-		print( side_drag )
+		f_drag = f_drag * linear_velocity.length()
+		s_drag = s_drag * linear_velocity.length()
+		apply_impulse( Vector2.ZERO, -f_drag )
+		apply_impulse( Vector2.ZERO, -s_drag )
 
 func _calc_lift_forces() :
 	var lift_amount = 2

@@ -14,6 +14,9 @@ onready var engine_control = $HUD/EngineControl/Buttons.get_children()
 onready var engines = $Starship/EngineConfiguration.get_children()
 onready var trajectory = $HUD/Trajectory
 
+onready var forward_drag_line = $ForwardDrag
+onready var side_drag_line = $SideDrag
+
 # Connect signals here between instanced scenes
 func _ready():
 	# Starship > Hud
@@ -66,6 +69,7 @@ func toggle_button( button ) :
 
 func _handle_stats() :
 	_update_prograde_stat()
+	_update_drag_stats()
 	var angle_to_landing_pad = landing_pad.global_position.angle_to( starship.global_position )
 	$HUD/DirectionArrow/Sprite.rotation = angle_to_landing_pad
 	to_landing_pad.points = [landing_pad.global_position, starship.global_position]
@@ -82,6 +86,21 @@ func _update_prograde_stat() :
 	prograde_location.y = starship.global_position.y + clamp( starship.linear_velocity.y, -220, 220 )
 	
 	prograde_arrow.global_position = prograde_location
+
+func _update_drag_stats() :
+	var f_points = []
+	var s_points = []
+
+	f_points.append( starship.f_vector )
+	f_points.append( starship.f_drag )
+	s_points.append( starship.s_vector )
+	s_points.append( starship.s_drag )
+
+	forward_drag_line.global_position = starship.global_position
+	side_drag_line.global_position = starship.global_position
+
+	forward_drag_line.points = f_points
+	side_drag_line.points = s_points
 
 # ========
 # FX
