@@ -183,21 +183,18 @@ func _get_atmosphere_density() :
 # Drag is a force that is applied to the vessel. The amount of drag a vessel feels
 func _calc_drag_forces() :
 	var density = _get_atmosphere_density()
-	var density_percent = ( density / 100 )
-
-	# Vectors are not rotating
-	var direction = self.linear_velocity.normalized()
-
-	var forward_dot = f_vector.normalized().dot( direction )
-	var side_dot = s_vector.normalized().dot( direction )
-
-	# New formula
-	s_drag = side_dot * side_dot * s_vector.normalized() * density_percent
-	f_drag = forward_dot * forward_dot * f_vector.normalized() * density_percent
 
 	if density > 0 :
-		f_drag = f_drag * linear_velocity.length()
-		s_drag = s_drag * linear_velocity.length()
+		var s = s_vector.rotated(global_rotation).normalized()
+		var f = f_vector.rotated(global_rotation).normalized()
+		var v = linear_velocity.normalized()
+
+		var sdot = v.dot(s)
+		var fdot = v.dot(f)
+
+		s_drag = abs(sdot) * sdot * s * ( density / 100 ) * 1.0 * linear_velocity.length()
+		f_drag = abs(fdot) * fdot * f * ( density / 100 ) * 0.25 * linear_velocity.length()
+
 		apply_impulse( Vector2.ZERO, -f_drag )
 		apply_impulse( Vector2.ZERO, -s_drag )
 
